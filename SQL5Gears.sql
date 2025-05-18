@@ -1,14 +1,14 @@
--- Criação do banco
+-- Criação do banco de dados
 CREATE DATABASE IF NOT EXISTS FiveGears;
 USE FiveGears;
 
--- Tabela de empresas
+-- Empresa
 CREATE TABLE empresa (
     id_empresa INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(255) NOT NULL
 );
 
--- Tabela de endereços
+-- Endereço
 CREATE TABLE endereco (
     id_endereco INT PRIMARY KEY AUTO_INCREMENT,
     rua VARCHAR(255) NOT NULL,
@@ -19,13 +19,13 @@ CREATE TABLE endereco (
     cep VARCHAR(20)
 );
 
--- Tabela de níveis de permissão
+-- Nível de permissão
 CREATE TABLE nivel_permissao (
     id_permissao INT PRIMARY KEY AUTO_INCREMENT,
     nome_permissao VARCHAR(50) NOT NULL UNIQUE
 );
 
--- Tabela de usuários
+-- Usuário
 CREATE TABLE usuario (
     id_usuario INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(255) NOT NULL,
@@ -35,21 +35,23 @@ CREATE TABLE usuario (
     id_empresa INT,
     id_endereco INT,
     id_permissao INT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa),
     FOREIGN KEY (id_endereco) REFERENCES endereco(id_endereco),
     FOREIGN KEY (id_permissao) REFERENCES nivel_permissao(id_permissao)
 );
 
--- Tabela de login
+-- Login
 CREATE TABLE login (
     id_login INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT NOT NULL,
-    senha VARCHAR(255) NOT NULL,
+    senha VARCHAR(255) NOT NULL CHECK (CHAR_LENGTH(senha) >= 8),
     ultimo_login DATETIME,
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
 );
 
--- Tabela de status de usuário (online/offline)
+-- Status do usuário
 CREATE TABLE status_usuario (
     id_status INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT NOT NULL,
@@ -59,7 +61,7 @@ CREATE TABLE status_usuario (
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
 );
 
--- Tabela de chamados Pipefy
+-- Chamados (Pipefy)
 CREATE TABLE chamado_pipefy (
     id_chamado INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT,
@@ -72,35 +74,44 @@ CREATE TABLE chamado_pipefy (
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
 );
 
--- Tabela de projetos
+-- Projetos
 CREATE TABLE projeto (
     id_projeto INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(255) NOT NULL,
     descricao TEXT,
     tempo_estimado_horas INT,
     orcamento DECIMAL(10, 2),
-    id_responsavel INT NOT NULL, -- gestor do projeto
+    status VARCHAR(50) DEFAULT 'EM_PLANEJAMENTO',
+    data_inicio DATE,
+    data_fim DATE,
+    id_responsavel INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_responsavel) REFERENCES usuario(id_usuario)
 );
 
--- Tabela de grupos dentro dos projetos
+-- Grupos de projeto
 CREATE TABLE grupo_projeto (
     id_grupo INT PRIMARY KEY AUTO_INCREMENT,
     nome_grupo VARCHAR(255),
     id_projeto INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE (nome_grupo, id_projeto),
     FOREIGN KEY (id_projeto) REFERENCES projeto(id_projeto)
 );
 
--- Tabela associativa entre grupo e usuário (membros do grupo)
+-- Associação de usuários a grupos (com papel opcional)
 CREATE TABLE usuario_grupo_projeto (
     id_usuario INT,
     id_grupo INT,
+    papel VARCHAR(100),
     PRIMARY KEY (id_usuario, id_grupo),
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario),
     FOREIGN KEY (id_grupo) REFERENCES grupo_projeto(id_grupo)
 );
 
--- Inserções padrão de permissões
+-- Permissões iniciais
 INSERT INTO nivel_permissao (nome_permissao) VALUES
 ('FUNCIONARIO'),
 ('GERENTE'),

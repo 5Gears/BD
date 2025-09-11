@@ -58,6 +58,7 @@ CREATE TABLE usuario (
     email VARCHAR(255) UNIQUE NOT NULL,
     cpf VARCHAR(14) UNIQUE,
     telefone VARCHAR(20),
+    area VARCHAR(20),
     id_empresa INT,
     id_nivel INT,
     id_status INT,

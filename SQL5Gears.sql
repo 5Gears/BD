@@ -59,6 +59,7 @@ CREATE TABLE usuario (
     cpf VARCHAR(14) UNIQUE,
     telefone VARCHAR(20),
     area VARCHAR(20),
+    carga_horaria INT DEFAULT 0,
     id_empresa INT,
     id_nivel INT,
     id_status INT,

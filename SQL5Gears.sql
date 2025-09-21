@@ -27,7 +27,9 @@ CREATE TABLE endereco (
     estado VARCHAR(2),
     cep VARCHAR(20),
     id_empresa INT,
-    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa)
+    id_cliente INT,
+    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa),
+    FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
 );
 
 -- Nivel de Permissão
@@ -51,6 +53,9 @@ CREATE TABLE status_usuario (
     descricao TEXT
 );
 
+INSERT INTO status_usuario (nome, descricao) VALUES ('ONLINE', 'Usuário está logado no sistema');
+INSERT INTO status_usuario (nome, descricao) VALUES ('OFFLINE', 'Usuário não está logado no sistema');
+
 -- Usuário
 CREATE TABLE usuario (
     id_usuario INT PRIMARY KEY AUTO_INCREMENT,
@@ -60,6 +65,7 @@ CREATE TABLE usuario (
     telefone VARCHAR(20),
     area VARCHAR(20),
     carga_horaria INT DEFAULT 0,
+    valor_hora DECIMAL(10,2) DEFAULT 0,
     id_empresa INT,
     id_nivel INT,
     id_status INT,
@@ -94,7 +100,8 @@ CREATE TABLE chamado_pipefy (
 CREATE TABLE cargo (
     id_cargo INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(100) NOT NULL,
-    descricao TEXT
+    descricao TEXT,
+    senioridade ENUM('ESTAGIARIO','JUNIOR','PLENO','SENIOR') DEFAULT 'JUNIOR'
 );
 
 -- Usuário ↔ Cargo
@@ -110,7 +117,10 @@ CREATE TABLE usuario_cargo (
 CREATE TABLE competencia (
     id_competencia INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(100) NOT NULL,
-    descricao TEXT
+    descricao TEXT,
+    codigo_esco VARCHAR(100),
+    tipo VARCHAR(100),                -- ex: skill, knowledge, ability
+    nivel_recomendado VARCHAR(50)   -- ex: básico, intermediário, avançado (um estag em bd não precisar ser avançado, mas um senior sim)
 );
 
 -- Usuário ↔ Competência
@@ -124,6 +134,7 @@ CREATE TABLE usuario_competencia (
 
 -- Cargo ↔ Competência
 CREATE TABLE cargo_competencia (
+	peso INT DEFAULT 1, -- nivel competencia de 1 a 5
     id_cargo INT NOT NULL,
     id_competencia INT NOT NULL,
     PRIMARY KEY (id_cargo, id_competencia),
@@ -153,6 +164,7 @@ CREATE TABLE usuario_projeto (
     id_projeto INT NOT NULL,
     id_usuario INT NOT NULL,
     id_cargo INT NOT NULL,
+    status ENUM('ALOCADO','FINALIZADO') DEFAULT 'ALOCADO',
     horas_alocadas INT DEFAULT 0,      
     horas_por_dia INT DEFAULT 0,            
     data_alocacao DATETIME, 

@@ -1,3 +1,4 @@
+-- DROP DATABASE IF EXISTS FiveGears;
 CREATE DATABASE IF NOT EXISTS FiveGears;
 USE FiveGears;
 
@@ -68,19 +69,29 @@ CREATE TABLE usuario (
     valor_hora DECIMAL(10,2) DEFAULT 0,
     id_empresa INT,
     id_nivel INT,
-    id_status INT,
     FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa),
-    FOREIGN KEY (id_nivel) REFERENCES nivel_permissao(id_nivel),
-    FOREIGN KEY (id_status) REFERENCES status_usuario(id_status)
+    FOREIGN KEY (id_nivel) REFERENCES nivel_permissao(id_nivel)
 );
 
 -- Login
 CREATE TABLE login (
     id_login INT PRIMARY KEY AUTO_INCREMENT,
-    id_usuario INT,
+    id_usuario INT NOT NULL,
+    username VARCHAR(255) UNIQUE NOT NULL,
     senha VARCHAR(255) NOT NULL CHECK (CHAR_LENGTH(senha) >= 8),
-    ultimo_login DATETIME,
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
+);
+
+-- Sessão do Login
+CREATE TABLE sessao (
+    id_sessao INT PRIMARY KEY AUTO_INCREMENT,
+    id_login INT NOT NULL,
+    id_status INT NOT NULL, 
+    token VARCHAR(255) NOT NULL UNIQUE,
+    inicio_sessao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fim_sessao DATETIME DEFAULT NULL, -- NULL se a sessão ainda estiver ativa
+    FOREIGN KEY (id_login) REFERENCES login(id_login),
+    FOREIGN KEY (id_status) REFERENCES status_usuario(id_status)
 );
 
 -- Chamado Pipefy

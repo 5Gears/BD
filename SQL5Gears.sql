@@ -162,7 +162,7 @@ CREATE TABLE projeto (
     descricao TEXT,
     tempo_estimado_horas INT,
     orcamento DECIMAL(15,2),
-    status VARCHAR(50) DEFAULT 'EM_PLANEJAMENTO',
+    status ENUM('EM_PLANEJAMENTO', 'EM_DESENVOLVIMENTO', 'NEGADO', 'CONCLUIDO') DEFAULT 'EM_PLANEJAMENTO',
     data_inicio DATE,
     data_fim DATE,
     id_responsavel INT NOT NULL,

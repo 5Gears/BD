@@ -115,57 +115,8 @@ CREATE TABLE chamado_pipefy (
 );
 
 -- ==========================================
--- CARGOS / COMPETÊNCIAS (ESCO) – INTEGRADO
+-- CATALOGO ESCO (mantém como referência)
 -- ==========================================
-
--- TABELA DE CARGOS
-CREATE TABLE cargo (
-    id_cargo INT PRIMARY KEY AUTO_INCREMENT,
-    nome VARCHAR(255) NOT NULL,
-    descricao TEXT,
-    senioridade ENUM('ESTAGIARIO','JUNIOR','PLENO','SENIOR') DEFAULT 'JUNIOR'
-);
-
--- RELAÇÃO USUÁRIO-CARGO
-CREATE TABLE usuario_cargo (
-    id_usuario INT NOT NULL,
-    id_cargo INT NOT NULL,
-    PRIMARY KEY (id_usuario, id_cargo),
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo)
-);
-
--- TABELA DE COMPETÊNCIAS
-CREATE TABLE competencia (
-    id_competencia INT PRIMARY KEY AUTO_INCREMENT,
-    nome VARCHAR(255) NOT NULL,
-    descricao TEXT,
-    tipo VARCHAR(100),
-    categoria VARCHAR(100)
-);
-
--- RELAÇÃO USUÁRIO-COMPETÊNCIA
-CREATE TABLE usuario_competencia (
-    id_usuario INT NOT NULL,
-    id_competencia INT NOT NULL,
-    ultima_utilizacao DATE,
-    PRIMARY KEY (id_usuario, id_competencia),
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_competencia) REFERENCES competencia(id_competencia)
-);
-
--- RELAÇÃO CARGO-COMPETÊNCIA
-CREATE TABLE cargo_competencia (
-    id_cargo INT NOT NULL,
-    id_competencia INT NOT NULL,
-    peso INT DEFAULT 1,
-    tipo_relacao ENUM('RECOMENDADA','REQUERIDA') DEFAULT 'REQUERIDA',
-    PRIMARY KEY (id_cargo, id_competencia),
-    FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo),
-    FOREIGN KEY (id_competencia) REFERENCES competencia(id_competencia)
-);
-
--- CATALOGO ESCO (CARGOS E COMPETÊNCIAS)
 CREATE TABLE esco_cargo (
     id_esco_cargo INT PRIMARY KEY AUTO_INCREMENT,
     nome_cargo VARCHAR(255) NOT NULL
@@ -180,53 +131,55 @@ CREATE TABLE esco_competencia (
     UNIQUE KEY uq_esco_cargo_comp (id_esco_cargo, nome_competencia)
 );
 
--- TRIGGER: popula competências e relação cargo-comp quando um cargo é inserido
-DELIMITER //
+-- ==========================================
+-- CARGOS / COMPETÊNCIAS (ESCO) – UNIFICADO
+-- ==========================================
 
-CREATE TRIGGER atualizar_cargo_competencias
-AFTER INSERT ON cargo
-FOR EACH ROW
-BEGIN
-    -- insere competências do catálogo ESCO, se ainda não existirem
-    INSERT INTO competencia (nome, categoria)
-    SELECT DISTINCT e.nome_competencia, 'ESCO'
-    FROM esco_competencia e
-    JOIN esco_cargo c ON e.id_esco_cargo = c.id_esco_cargo
-    WHERE c.nome_cargo = NEW.nome
-      AND e.nome_competencia NOT IN (SELECT nome FROM competencia);
+CREATE TABLE cargo (
+    id_cargo INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    senioridade ENUM('ESTAGIARIO','JUNIOR','PLENO','SENIOR') DEFAULT 'JUNIOR',
+    origem ENUM('INTERNO', 'ESCO') DEFAULT 'INTERNO',
+    id_esco_cargo INT NULL,
+    FOREIGN KEY (id_esco_cargo) REFERENCES esco_cargo(id_esco_cargo)
+);
 
-    -- insere relação cargo_competencia
-    INSERT INTO cargo_competencia (id_cargo, id_competencia, tipo_relacao)
-    SELECT NEW.id_cargo, comp.id_competencia, e.tipo_relacao
-    FROM esco_competencia e
-    JOIN esco_cargo c ON e.id_esco_cargo = c.id_esco_cargo
-    JOIN competencia comp ON comp.nome = e.nome_competencia
-    WHERE c.nome_cargo = NEW.nome;
-END;
-//
+CREATE TABLE usuario_cargo (
+    id_usuario INT NOT NULL,
+    id_cargo INT NOT NULL,
+    PRIMARY KEY (id_usuario, id_cargo),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo)
+);
 
-DELIMITER ;
+CREATE TABLE competencia (
+    id_competencia INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    tipo VARCHAR(100),
+    categoria VARCHAR(100)
+);
 
--- TRIGGER: popula competências do usuário quando associamos a um cargo
-DELIMITER //
+CREATE TABLE usuario_competencia (
+    id_usuario INT NOT NULL,
+    id_competencia INT NOT NULL,
+    ultima_utilizacao DATE,
+    PRIMARY KEY (id_usuario, id_competencia),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_competencia) REFERENCES competencia(id_competencia)
+);
 
-CREATE TRIGGER usuario_competencias_apos_cargo
-AFTER INSERT ON usuario_cargo
-FOR EACH ROW
-BEGIN
-    INSERT INTO usuario_competencia (id_usuario, id_competencia)
-    SELECT NEW.id_usuario, cc.id_competencia
-    FROM cargo_competencia cc
-    WHERE cc.id_cargo = NEW.id_cargo
-      AND NOT EXISTS (
-          SELECT 1 
-          FROM usuario_competencia uc 
-          WHERE uc.id_usuario = NEW.id_usuario AND uc.id_competencia = cc.id_competencia
-      );
-END;
-//
+CREATE TABLE cargo_competencia (
+    id_cargo INT NOT NULL,
+    id_competencia INT NOT NULL,
+    peso INT DEFAULT 1,
+    tipo_relacao ENUM('RECOMENDADA','REQUERIDA') DEFAULT 'REQUERIDA',
+    PRIMARY KEY (id_cargo, id_competencia),
+    FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo),
+    FOREIGN KEY (id_competencia) REFERENCES competencia(id_competencia)
+);
 
-DELIMITER ;
 
 -- ==========================================
 -- SOFT SKILLS / FEEDBACKS

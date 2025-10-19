@@ -34,8 +34,8 @@ CREATE TABLE endereco (
     telefone VARCHAR(20), -- texto normal
     id_empresa INT,
     id_cliente INT,
-    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa),
-    FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
+    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa) ON DELETE CASCADE,
+    FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente) ON DELETE CASCADE
 );
 
 -- ==========================================
@@ -77,16 +77,15 @@ CREATE TABLE usuario (
     valor_hora DECIMAL(10,2) DEFAULT 0,
     id_empresa INT,
     id_nivel INT,
-    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa),
+    FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa) ON DELETE CASCADE,
     FOREIGN KEY (id_nivel) REFERENCES nivel_permissao(id_nivel)
 );
 
 CREATE TABLE login (
     id_login INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT NOT NULL,
-    username VARCHAR(255) UNIQUE NOT NULL,
     senha VARCHAR(255) NOT NULL CHECK (CHAR_LENGTH(senha) >= 8), -- hash
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
 CREATE TABLE sessao (
@@ -96,7 +95,7 @@ CREATE TABLE sessao (
     token VARCHAR(255) NOT NULL UNIQUE,
     inicio_sessao DATETIME DEFAULT CURRENT_TIMESTAMP,
     fim_sessao DATETIME DEFAULT NULL,
-    FOREIGN KEY (id_login) REFERENCES login(id_login),
+    FOREIGN KEY (id_login) REFERENCES login(id_login) ON DELETE CASCADE,
     FOREIGN KEY (id_status) REFERENCES status_usuario(id_status)
 );
 
@@ -112,12 +111,14 @@ CREATE TABLE chamado_pipefy (
     status VARCHAR(50) DEFAULT 'ABERTO',
     id_pipefy_card VARCHAR(100),
     tipo_chamado VARCHAR(100),
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
 -- ==========================================
--- CARGOS / COMPETÊNCIAS (ESCO)
+-- CARGOS / COMPETÊNCIAS (ESCO) – INTEGRADO
 -- ==========================================
+
+-- TABELA DE CARGOS
 CREATE TABLE cargo (
     id_cargo INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(255) NOT NULL,
@@ -125,44 +126,107 @@ CREATE TABLE cargo (
     senioridade ENUM('ESTAGIARIO','JUNIOR','PLENO','SENIOR') DEFAULT 'JUNIOR'
 );
 
+-- RELAÇÃO USUÁRIO-CARGO
 CREATE TABLE usuario_cargo (
     id_usuario INT NOT NULL,
     id_cargo INT NOT NULL,
     PRIMARY KEY (id_usuario, id_cargo),
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo)
 );
 
+-- TABELA DE COMPETÊNCIAS
 CREATE TABLE competencia (
     id_competencia INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(255) NOT NULL,
     descricao TEXT,
-    codigo_esco VARCHAR(100),
     tipo VARCHAR(100),
-    categoria VARCHAR(100),
-    nivel_recomendado ENUM('BASICO','INTERMEDIARIO','AVANCADO','ESPECIALISTA') DEFAULT 'BASICO'
+    categoria VARCHAR(100)
 );
 
+-- RELAÇÃO USUÁRIO-COMPETÊNCIA
 CREATE TABLE usuario_competencia (
     id_usuario INT NOT NULL,
     id_competencia INT NOT NULL,
-    nivel ENUM('BASICO','INTERMEDIARIO','AVANCADO','ESPECIALISTA') DEFAULT 'BASICO',
-    experiencia_anos INT DEFAULT 0,
     ultima_utilizacao DATE,
     PRIMARY KEY (id_usuario, id_competencia),
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_competencia) REFERENCES competencia(id_competencia)
 );
 
+-- RELAÇÃO CARGO-COMPETÊNCIA
 CREATE TABLE cargo_competencia (
     id_cargo INT NOT NULL,
     id_competencia INT NOT NULL,
     peso INT DEFAULT 1,
-    tipo_relacao VARCHAR(50),
+    tipo_relacao ENUM('RECOMENDADA','REQUERIDA') DEFAULT 'REQUERIDA',
     PRIMARY KEY (id_cargo, id_competencia),
     FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo),
     FOREIGN KEY (id_competencia) REFERENCES competencia(id_competencia)
 );
+
+-- CATALOGO ESCO (CARGOS E COMPETÊNCIAS)
+CREATE TABLE esco_cargo (
+    id_esco_cargo INT PRIMARY KEY AUTO_INCREMENT,
+    nome_cargo VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE esco_competencia (
+    id_esco_comp INT PRIMARY KEY AUTO_INCREMENT,
+    id_esco_cargo INT NOT NULL,
+    nome_competencia VARCHAR(500) NOT NULL,
+    tipo_relacao ENUM('RECOMENDADA','REQUERIDA') DEFAULT 'REQUERIDA',
+    FOREIGN KEY (id_esco_cargo) REFERENCES esco_cargo(id_esco_cargo),
+    UNIQUE KEY uq_esco_cargo_comp (id_esco_cargo, nome_competencia)
+);
+
+-- TRIGGER: popula competências e relação cargo-comp quando um cargo é inserido
+DELIMITER //
+
+CREATE TRIGGER atualizar_cargo_competencias
+AFTER INSERT ON cargo
+FOR EACH ROW
+BEGIN
+    -- insere competências do catálogo ESCO, se ainda não existirem
+    INSERT INTO competencia (nome, categoria)
+    SELECT DISTINCT e.nome_competencia, 'ESCO'
+    FROM esco_competencia e
+    JOIN esco_cargo c ON e.id_esco_cargo = c.id_esco_cargo
+    WHERE c.nome_cargo = NEW.nome
+      AND e.nome_competencia NOT IN (SELECT nome FROM competencia);
+
+    -- insere relação cargo_competencia
+    INSERT INTO cargo_competencia (id_cargo, id_competencia, tipo_relacao)
+    SELECT NEW.id_cargo, comp.id_competencia, e.tipo_relacao
+    FROM esco_competencia e
+    JOIN esco_cargo c ON e.id_esco_cargo = c.id_esco_cargo
+    JOIN competencia comp ON comp.nome = e.nome_competencia
+    WHERE c.nome_cargo = NEW.nome;
+END;
+//
+
+DELIMITER ;
+
+-- TRIGGER: popula competências do usuário quando associamos a um cargo
+DELIMITER //
+
+CREATE TRIGGER usuario_competencias_apos_cargo
+AFTER INSERT ON usuario_cargo
+FOR EACH ROW
+BEGIN
+    INSERT INTO usuario_competencia (id_usuario, id_competencia)
+    SELECT NEW.id_usuario, cc.id_competencia
+    FROM cargo_competencia cc
+    WHERE cc.id_cargo = NEW.id_cargo
+      AND NOT EXISTS (
+          SELECT 1 
+          FROM usuario_competencia uc 
+          WHERE uc.id_usuario = NEW.id_usuario AND uc.id_competencia = cc.id_competencia
+      );
+END;
+//
+
+DELIMITER ;
 
 -- ==========================================
 -- SOFT SKILLS / FEEDBACKS
@@ -173,15 +237,27 @@ CREATE TABLE soft_skill (
     descricao TEXT
 );
 
+INSERT INTO soft_skill (nome, descricao) VALUES
+('Comunicação', 'Capacidade de transmitir ideias de forma clara e eficaz.'),
+('Trabalho em equipe', 'Colabora bem com colegas e apoia o grupo.'),
+('Liderança', 'Motiva e orienta outras pessoas para alcançar objetivos.'),
+('Adaptabilidade', 'Se ajusta rapidamente a mudanças e novos desafios.'),
+('Criatividade', 'Apresenta soluções inovadoras e originais para problemas.'),
+('Pensamento crítico', 'Analisa situações com lógica e faz julgamentos sólidos.'),
+('Gestão de tempo', 'Organiza tarefas e prioridades de forma eficiente.'),
+('Empatia', 'Entende e respeita as emoções e perspectivas dos outros.'),
+('Proatividade', 'Toma iniciativa sem depender de instruções diretas.'),
+('Resiliência', 'Mantém a performance mesmo sob pressão ou adversidades.');
+
 CREATE TABLE usuario_soft_skill (
     id_usuario INT NOT NULL,
     id_soft_skill INT NOT NULL,
-    nivel ENUM('BAIXO','MEDIO','ALTO','EXCELENTE') DEFAULT 'MEDIO',
+    nivel ENUM('HORRIVEL','BAIXO','MEDIO','ALTO','EXCELENTE'),
     ultima_avaliacao DATE,
-    fonte_avaliacao ENUM('GERENTE','AUTOAVALIACAO','COLEGA','IA') DEFAULT 'GERENTE',
+    fonte_avaliacao ENUM('GERENTE') DEFAULT 'GERENTE',
     comentario TEXT,
     PRIMARY KEY (id_usuario, id_soft_skill),
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_soft_skill) REFERENCES soft_skill(id_soft_skill)
 );
 
@@ -193,8 +269,21 @@ CREATE TABLE feedback (
     comentario TEXT,
     nota INT CHECK (nota BETWEEN 0 AND 10),
     data_feedback DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_avaliador) REFERENCES usuario(id_usuario),
-    FOREIGN KEY (id_avaliado) REFERENCES usuario(id_usuario)
+    FOREIGN KEY (id_avaliador) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_avaliado) REFERENCES usuario(id_usuario) ON DELETE CASCADE
+);
+
+CREATE TABLE usuario_soft_skill_feedback (
+    id_feedback INT PRIMARY KEY AUTO_INCREMENT,
+    id_usuario INT NOT NULL,
+    id_soft_skill INT NOT NULL,
+    id_avaliador INT NOT NULL,
+    nivel ENUM('HORRIVEL','BAIXO','MEDIO','ALTO','EXCELENTE') NOT NULL,
+    comentario TEXT,
+    data_avaliacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_soft_skill) REFERENCES soft_skill(id_soft_skill),
+    FOREIGN KEY (id_avaliador) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
 -- ==========================================
@@ -212,8 +301,8 @@ CREATE TABLE projeto (
     data_fim DATE,
     id_responsavel INT NOT NULL,
     competencias_requeridas TEXT,
-    FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),
-    FOREIGN KEY (id_responsavel) REFERENCES usuario(id_usuario)
+    FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente) ON DELETE CASCADE,
+    FOREIGN KEY (id_responsavel) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
 CREATE TABLE usuario_projeto (
@@ -227,7 +316,7 @@ CREATE TABLE usuario_projeto (
     data_saida DATE DEFAULT NULL,
     PRIMARY KEY (id_projeto, id_usuario),
     FOREIGN KEY (id_projeto) REFERENCES projeto(id_projeto),
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo)
 );
 
@@ -243,7 +332,7 @@ CREATE TABLE auditoria (
     valores_novos TEXT,
     usuario_responsavel INT,
     data_evento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (usuario_responsavel) REFERENCES usuario(id_usuario)
+    FOREIGN KEY (usuario_responsavel) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
 -- ==========================================
@@ -251,7 +340,7 @@ CREATE TABLE auditoria (
 -- ==========================================
 DELIMITER //
 
--- Usuario: CPF e Senha (hash)
+-- Usuario: CPF
 CREATE TRIGGER usuario_before_insert
 BEFORE INSERT ON usuario
 FOR EACH ROW
@@ -272,7 +361,7 @@ BEGIN
 END;
 //
 
--- Login: Senha (hash)
+-- Login: Senha
 CREATE TRIGGER login_before_insert
 BEFORE INSERT ON login
 FOR EACH ROW
@@ -293,7 +382,7 @@ BEGIN
 END;
 //
 
--- Cliente: CNPJ (hash)
+-- Cliente: CNPJ
 CREATE TRIGGER cliente_before_insert
 BEFORE INSERT ON cliente
 FOR EACH ROW

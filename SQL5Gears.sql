@@ -1,14 +1,12 @@
--- ==========================================
--- BANCO DE DADOS: FiveGears (versão IA/ESCO)
--- ==========================================
+
+-- BANCO DE DADOS: FiveGears 
 
 -- DROP DATABASE IF EXISTS FiveGears;
 CREATE DATABASE IF NOT EXISTS FiveGears;
 USE FiveGears;
 
--- ==========================================
 -- EMPRESA / CLIENTE / ENDEREÇO
--- ==========================================
+
 CREATE TABLE empresa (
     id_empresa INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(255) NOT NULL,
@@ -38,9 +36,8 @@ CREATE TABLE endereco (
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente) ON DELETE CASCADE
 );
 
--- ==========================================
 -- PERMISSÕES / STATUS
--- ==========================================
+
 CREATE TABLE nivel_permissao (
     id_nivel INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(100) NOT NULL,
@@ -63,14 +60,13 @@ INSERT INTO status_usuario (nome, descricao) VALUES
 ('ONLINE', 'Usuário está logado no sistema'),
 ('OFFLINE', 'Usuário não está logado no sistema');
 
--- ==========================================
 -- USUÁRIO / LOGIN / SESSÃO
--- ==========================================
+
 CREATE TABLE usuario (
     id_usuario INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    cpf VARCHAR(64) UNIQUE, -- hash
+    email VARCHAR(255) UNIQUE,
+    cpf VARCHAR(64) UNIQUE, 
     telefone VARCHAR(20),
     area VARCHAR(50),
     carga_horaria INT DEFAULT 0,
@@ -99,9 +95,8 @@ CREATE TABLE sessao (
     FOREIGN KEY (id_status) REFERENCES status_usuario(id_status)
 );
 
--- ==========================================
 -- CHAMADOS (PIPEFY)
--- ==========================================
+
 CREATE TABLE chamado_pipefy (
     id_chamado INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT,
@@ -114,35 +109,14 @@ CREATE TABLE chamado_pipefy (
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
--- ==========================================
--- CATALOGO ESCO (mantém como referência)
--- ==========================================
-CREATE TABLE esco_cargo (
-    id_esco_cargo INT PRIMARY KEY AUTO_INCREMENT,
-    nome_cargo VARCHAR(255) NOT NULL
-);
-
-CREATE TABLE esco_competencia (
-    id_esco_comp INT PRIMARY KEY AUTO_INCREMENT,
-    id_esco_cargo INT NOT NULL,
-    nome_competencia VARCHAR(500) NOT NULL,
-    tipo_relacao ENUM('RECOMENDADA','REQUERIDA') DEFAULT 'REQUERIDA',
-    FOREIGN KEY (id_esco_cargo) REFERENCES esco_cargo(id_esco_cargo),
-    UNIQUE KEY uq_esco_cargo_comp (id_esco_cargo, nome_competencia)
-);
-
--- ==========================================
--- CARGOS / COMPETÊNCIAS (ESCO) – UNIFICADO
--- ==========================================
+-- CATALOGO ESCO/INTERNO 
 
 CREATE TABLE cargo (
     id_cargo INT PRIMARY KEY AUTO_INCREMENT,
-    nome VARCHAR(255) NOT NULL,
+    nome VARCHAR(255) NOT NULL UNIQUE,
     descricao TEXT,
     senioridade ENUM('ESTAGIARIO','JUNIOR','PLENO','SENIOR') DEFAULT 'JUNIOR',
-    origem ENUM('INTERNO', 'ESCO') DEFAULT 'INTERNO',
-    id_esco_cargo INT NULL,
-    FOREIGN KEY (id_esco_cargo) REFERENCES esco_cargo(id_esco_cargo)
+    fonte ENUM('interno','importado') DEFAULT 'interno'
 );
 
 CREATE TABLE usuario_cargo (
@@ -155,16 +129,19 @@ CREATE TABLE usuario_cargo (
 
 CREATE TABLE competencia (
     id_competencia INT PRIMARY KEY AUTO_INCREMENT,
-    nome VARCHAR(255) NOT NULL,
+    nome VARCHAR(255) NOT NULL UNIQUE,
     descricao TEXT,
     tipo VARCHAR(100),
-    categoria VARCHAR(100)
+    categoria VARCHAR(100),
+    nivel_recomendado ENUM('BASICO','INTERMEDIARIO','AVANCADO','ESPECIALISTA') DEFAULT 'BASICO'
 );
 
 CREATE TABLE usuario_competencia (
     id_usuario INT NOT NULL,
     id_competencia INT NOT NULL,
     ultima_utilizacao DATE,
+    experiencia_anos INT DEFAULT 0,
+    nivel ENUM('BASICO','INTERMEDIARIO','AVANCADO','ESPECIALISTA') DEFAULT 'BASICO',
     PRIMARY KEY (id_usuario, id_competencia),
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_competencia) REFERENCES competencia(id_competencia)
@@ -180,10 +157,8 @@ CREATE TABLE cargo_competencia (
     FOREIGN KEY (id_competencia) REFERENCES competencia(id_competencia)
 );
 
-
--- ==========================================
 -- SOFT SKILLS / FEEDBACKS
--- ==========================================
+
 CREATE TABLE soft_skill (
     id_soft_skill INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(100) NOT NULL,
@@ -239,9 +214,8 @@ CREATE TABLE usuario_soft_skill_feedback (
     FOREIGN KEY (id_avaliador) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
--- ==========================================
 -- PROJETOS / ALOCAÇÕES
--- ==========================================
+
 CREATE TABLE projeto (
     id_projeto INT PRIMARY KEY AUTO_INCREMENT,
     id_cliente INT,
@@ -273,9 +247,8 @@ CREATE TABLE usuario_projeto (
     FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo)
 );
 
--- ==========================================
 -- AUDITORIA
--- ==========================================
+
 CREATE TABLE auditoria (
     id_auditoria INT PRIMARY KEY AUTO_INCREMENT,
     tabela_afetada VARCHAR(100) NOT NULL,
@@ -288,9 +261,8 @@ CREATE TABLE auditoria (
     FOREIGN KEY (usuario_responsavel) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
--- ==========================================
 -- TRIGGERS DE HASH
--- ==========================================
+
 DELIMITER //
 
 -- Usuario: CPF

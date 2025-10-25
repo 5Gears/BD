@@ -115,13 +115,15 @@ CREATE TABLE cargo (
     id_cargo INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(255) NOT NULL UNIQUE,
     descricao TEXT,
-    senioridade ENUM('ESTAGIARIO','JUNIOR','PLENO','SENIOR') DEFAULT 'JUNIOR',
     fonte ENUM('interno','importado') DEFAULT 'interno'
 );
 
 CREATE TABLE usuario_cargo (
     id_usuario INT NOT NULL,
     id_cargo INT NOT NULL,
+    senioridade ENUM('ESTAGIARIO','JUNIOR','PLENO','SENIOR') DEFAULT 'JUNIOR',
+    data_inicio DATE DEFAULT (CURRENT_DATE),
+    ultima_atualizacao DATE DEFAULT NULL,
     PRIMARY KEY (id_usuario, id_cargo),
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo)
@@ -132,16 +134,13 @@ CREATE TABLE competencia (
     nome VARCHAR(255) NOT NULL UNIQUE,
     descricao TEXT,
     tipo VARCHAR(100),
-    categoria VARCHAR(100),
-    nivel_recomendado ENUM('BASICO','INTERMEDIARIO','AVANCADO','ESPECIALISTA') DEFAULT 'BASICO'
+    categoria VARCHAR(100)
 );
 
 CREATE TABLE usuario_competencia (
     id_usuario INT NOT NULL,
     id_competencia INT NOT NULL,
     ultima_utilizacao DATE,
-    experiencia_anos INT DEFAULT 0,
-    nivel ENUM('BASICO','INTERMEDIARIO','AVANCADO','ESPECIALISTA') DEFAULT 'BASICO',
     PRIMARY KEY (id_usuario, id_competencia),
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_competencia) REFERENCES competencia(id_competencia)
@@ -219,7 +218,7 @@ CREATE TABLE usuario_soft_skill_feedback (
 CREATE TABLE projeto (
     id_projeto INT PRIMARY KEY AUTO_INCREMENT,
     id_cliente INT,
-    nome VARCHAR(255) NOT NULL,
+    nome VARCHAR(255) NOT NULL UNIQUE, 
     descricao TEXT,
     tempo_estimado_horas INT,
     orcamento DECIMAL(15,2),

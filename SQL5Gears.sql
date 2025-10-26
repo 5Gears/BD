@@ -286,27 +286,6 @@ BEGIN
 END;
 //
 
--- Login: Senha
-CREATE TRIGGER login_before_insert
-BEFORE INSERT ON login
-FOR EACH ROW
-BEGIN
-    IF NEW.senha IS NOT NULL THEN
-        SET NEW.senha = SHA2(NEW.senha, 256);
-    END IF;
-END;
-//
-
-CREATE TRIGGER login_before_update
-BEFORE UPDATE ON login
-FOR EACH ROW
-BEGIN
-    IF NEW.senha IS NOT NULL AND OLD.senha <> NEW.senha THEN
-        SET NEW.senha = SHA2(NEW.senha, 256);
-    END IF;
-END;
-//
-
 -- Cliente: CNPJ
 CREATE TRIGGER cliente_before_insert
 BEFORE INSERT ON cliente

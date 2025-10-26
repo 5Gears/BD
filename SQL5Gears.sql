@@ -80,7 +80,8 @@ CREATE TABLE usuario (
 CREATE TABLE login (
     id_login INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT NOT NULL,
-    senha VARCHAR(255) NOT NULL CHECK (CHAR_LENGTH(senha) >= 8), -- hash
+    senha VARCHAR(255) NOT NULL CHECK (CHAR_LENGTH(senha) >= 8),
+    primeiro_acesso BOOLEAN NOT NULL DEFAULT TRUE,
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 

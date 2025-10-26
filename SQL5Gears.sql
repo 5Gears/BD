@@ -115,7 +115,7 @@ CREATE TABLE cargo (
     id_cargo INT PRIMARY KEY AUTO_INCREMENT,
     nome VARCHAR(255) NOT NULL UNIQUE,
     descricao TEXT,
-    fonte ENUM('interno','importado') DEFAULT 'interno'
+    fonte ENUM('INTERNO', 'IMPORTADO') DEFAULT 'INTERNO'
 );
 
 CREATE TABLE usuario_cargo (

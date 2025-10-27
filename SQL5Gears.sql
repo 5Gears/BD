@@ -308,3 +308,45 @@ END;
 //
 
 DELIMITER ;
+
+-- ==========================================
+-- MOCK ADMIN (usuário + login + empresa)
+-- ==========================================
+
+-- Inserir empresa FiveGears
+INSERT INTO empresa (nome, fundador, cnpj)
+VALUES ('FiveGears', 'Equipe FiveGears', SHA2('00000000000100', 256));
+
+-- Buscar ID da empresa recém-criada
+SET @id_empresa := LAST_INSERT_ID();
+
+-- Buscar ID do nível ADMIN
+SELECT id_nivel INTO @id_admin FROM nivel_permissao WHERE nome = 'ADMIN';
+
+-- Criar usuário administrador
+INSERT INTO usuario (nome, email, cpf, telefone, area, carga_horaria, valor_hora, id_empresa, id_nivel)
+VALUES (
+  'Administrador FiveGears',
+  'admin@fivegears.com',
+  SHA2('00000000000', 256),
+  '(11) 90000-0000',
+  'Administração',
+  40,
+  100.00,
+  @id_empresa,
+  @id_admin
+);
+
+-- Buscar ID do usuário criado
+SET @id_usuario := LAST_INSERT_ID();
+
+-- Criar login com senha padrão (hash será aplicado pela aplicação)
+INSERT INTO login (id_usuario, senha, primeiro_acesso)
+VALUES (@id_usuario, 'admin1234', TRUE);
+
+-- (Opcional) Criar sessão inicial como OFFLINE
+SELECT id_status INTO @id_status_offline FROM status_usuario WHERE nome = 'OFFLINE';
+
+INSERT INTO sessao (id_login, id_status, token)
+VALUES (LAST_INSERT_ID(), @id_status_offline, UUID());
+

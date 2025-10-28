@@ -235,7 +235,6 @@ CREATE TABLE projeto (
 CREATE TABLE usuario_projeto (
     id_projeto INT NOT NULL,
     id_usuario INT NOT NULL,
-    id_cargo INT NOT NULL,
     status ENUM('ALOCADO','FINALIZADO') DEFAULT 'ALOCADO',
     horas_alocadas INT DEFAULT 0,
     horas_por_dia INT DEFAULT 0,
@@ -243,8 +242,7 @@ CREATE TABLE usuario_projeto (
     data_saida DATE DEFAULT NULL,
     PRIMARY KEY (id_projeto, id_usuario),
     FOREIGN KEY (id_projeto) REFERENCES projeto(id_projeto),
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo)
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
 -- AUDITORIA

@@ -1,15 +1,12 @@
 version: "3.8"
 services:
   mysql:
-    image: mysql:8.0
+    build: .
     env_file:
-      - .env               
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./SQL5Gears.sql:/docker-entrypoint-initdb.d/init.sql:ro
-
+      - .env
     ports:
       - "3306:3306"
-
+    volumes:
+      - db_data:/var/lib/mysql
 volumes:
   db_data:

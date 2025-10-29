@@ -199,3 +199,7 @@ SELECT nome, email FROM usuario WHERE email LIKE '%@fivegears.com%' AND email <>
 
 SELECT 'PROJETO APOLLO' AS secao;
 SELECT * FROM projeto WHERE nome = 'Projeto Apollo';
+
+select * from usuario_projeto where id_projeto = 1;
+
+select * from usuario;

@@ -202,4 +202,4 @@ SELECT * FROM projeto WHERE nome = 'Projeto Apollo';
 
 select * from usuario_projeto where id_projeto = 1;
 
-select * from usuario;
+select * from sessao;

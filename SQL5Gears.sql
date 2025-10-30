@@ -150,7 +150,6 @@ CREATE TABLE usuario_competencia (
 CREATE TABLE cargo_competencia (
     id_cargo INT NOT NULL,
     id_competencia INT NOT NULL,
-    peso INT DEFAULT 1,
     tipo_relacao ENUM('RECOMENDADA','REQUERIDA') DEFAULT 'REQUERIDA',
     PRIMARY KEY (id_cargo, id_competencia),
     FOREIGN KEY (id_cargo) REFERENCES cargo(id_cargo),
@@ -230,6 +229,14 @@ CREATE TABLE projeto (
     competencias_requeridas TEXT,
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente) ON DELETE CASCADE,
     FOREIGN KEY (id_responsavel) REFERENCES usuario(id_usuario) ON DELETE CASCADE
+);
+
+CREATE TABLE projeto_analise (
+    id_analise BINARY(16) PRIMARY KEY, -- UUID
+    descricao_extraida LONGTEXT NOT NULL,
+    competencias_requeridas LONGTEXT,
+    status ENUM('ATIVO', 'USADO') DEFAULT 'ATIVO',
+    data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE usuario_projeto (

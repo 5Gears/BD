@@ -124,8 +124,8 @@ tipo = new.tipo,
 categoria = new.categoria;
 
 -- VINCULAR COMPETÊNCIAS AO CARGO
-INSERT IGNORE INTO cargo_competencia (id_cargo, id_competencia, peso, tipo_relacao)
-SELECT @id_cargo_programador, id_competencia, 3, 'REQUERIDA' FROM competencia;
+INSERT IGNORE INTO cargo_competencia (id_cargo, id_competencia, tipo_relacao)
+SELECT @id_cargo_programador, id_competencia, 'REQUERIDA' FROM competencia;
 
 -- USUÁRIOS (FUNCIONÁRIOS)
 SELECT id_nivel INTO @id_funcionario FROM nivel_permissao WHERE nome = 'FUNCIONARIO';

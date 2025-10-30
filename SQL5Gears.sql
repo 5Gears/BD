@@ -238,7 +238,7 @@ CREATE TABLE usuario_projeto (
     status ENUM('ALOCADO','FINALIZADO') DEFAULT 'ALOCADO',
     horas_alocadas INT DEFAULT 0,
     horas_por_dia INT DEFAULT 0,
-    data_alocacao DATETIME,
+    data_alocacao DATE,
     data_saida DATE DEFAULT NULL,
     PRIMARY KEY (id_projeto, id_usuario),
     FOREIGN KEY (id_projeto) REFERENCES projeto(id_projeto),

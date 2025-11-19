@@ -82,7 +82,7 @@ ON DUPLICATE KEY UPDATE
 SET @id_usuario_admin := (SELECT id_usuario FROM usuario WHERE email = 'admin@fivegears.com');
 
 INSERT INTO login (id_usuario, senha, primeiro_acesso)
-VALUES (@id_usuario_admin, 'admin1234', TRUE)
+VALUES (@id_usuario_admin, 'admin@fivegears.com', TRUE)
 ON DUPLICATE KEY UPDATE
     senha = VALUES(senha),
     primeiro_acesso = VALUES(primeiro_acesso);
@@ -203,3 +203,5 @@ SELECT * FROM projeto WHERE nome = 'Projeto Apollo';
 select * from usuario_projeto where id_projeto = 1;
 
 select * from sessao;
+
+select * from usuario_projeto;

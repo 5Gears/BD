@@ -206,4 +206,4 @@ select * from sessao;
 
 select * from usuario_projeto;
 
-SELECT * FROM login;
+SELECT * FROM sessao;
